@@ -1,8 +1,8 @@
 # Embro
 A program for helping my partner with their tapestry weaving.
 
-Embro - A free and open-source application intended to generate patterns and make certain disciplines of
-Embroidery and tapestry creation easier to keep track of.
+Embro - A free and open-source application intended to generate patterns from raw Pictures and make certain
+disciplines of Embroidery and tapestry creation easier to keep track of.
 
 To use the program, place Embro.jar into a folder of your choosing and run it.
 
