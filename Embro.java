@@ -8,7 +8,7 @@ import java.awt.image.*;
 
 public class Embro extends JPanel implements ActionListener, KeyListener, ComponentListener, MouseListener, MouseMotionListener {
 
-	private final int LOAD = 0, COMPOSING = 1, WORKING = 2, maxSelectableHeight = 50, selectableSpacing = 10, menuHeight = 25, selectableBorder = 3;
+	private final int LOAD = 0, COMPOSING = 1, WORKING = 2, selectableHeight = 50, selectableSpacing = 10, menuHeight = 25, selectableBorder = 3;
 	private int sourceHeight, width, height, paletteSize, numberWidth, paletteOffset, progress, lastProgress, numLocalImages, numProjects, maxXOffset;
 	private int sourceWidth = 0, xOffset = 0, yOffset = 0, zoom = 1, paletteIndex = 0, screenWidth = 800, screenHeight = 600, mode = LOAD, selection = -1, view = 0, viewPan = 1;
 	private int[][][] rgbArray, rawArray, pixelatedArray;
@@ -73,7 +73,6 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 			}
 		}
 		selectables = new Rectangle[numProjects + numLocalImages];
-		int selectableHeight = (int) Math.min(maxSelectableHeight, screenHeight / Math.max(numLocalImages, numProjects));
 		int selectableWidth = (int) (0.5 * (screenWidth - 3 * selectableSpacing));
 		for (int i = 0; i < numLocalImages; i++)
 			selectables[i] = new Rectangle(2 * selectableSpacing + selectableWidth, i * selectableHeight + 2 * menuHeight + selectableSpacing, selectableWidth, selectableHeight);
@@ -94,7 +93,7 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 						System.out.println("Calling loadProject with name: " + folder.getPath() + "\\Projects\\" + name + "\\" + name);
 						loadProject(folder.getPath() + "\\Projects\\" + name + "\\" + name);
 						mode = WORKING;
-					} else {	//a local image
+					} else {	//a local image 
 						File input = new File(folder + "\\" + localImages[selection]);
 						rawImage = loadImage(input);
 						if (rawImage == null) {
@@ -104,6 +103,7 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 							ingestImage(rawImage);
 						name = input.getName().substring(0, input.getName().lastIndexOf('.'));
 						mode = COMPOSING;
+						yOffset = 0;
 						loadField.setBounds(0, 0, (int) (0.4 * screenWidth), menuHeight);
 						loadField.setText(knotText);
 						otherField.setText(colText);
@@ -125,6 +125,7 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 								ingestImage(rawImage);
 							name = input.getName().substring(0, input.getName().lastIndexOf('.'));
 							mode = COMPOSING;
+							yOffset = 0;
 							loadField.setBounds(0, 0, (int) (0.4 * screenWidth), menuHeight);
 							loadField.setText(knotText);
 							otherField.setText(colText);
@@ -273,21 +274,20 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 				g.setFont(new Font(g.getFont().getName(), 1, menuHeight - 5));
 				g.drawString("Projects:", 2 * selectableSpacing, 2 * menuHeight);
 				g.drawString("Local Images:", (int) (3 * selectableSpacing + selectables[0].getWidth()), 2 * menuHeight);
-				for (int i = 0; i < selectables.length; i++) {
-					g.setColor(Color.BLACK);
-					g.fillRect((int) selectables[i].getX(), (int) selectables[i].getY(), (int) selectables[i].getWidth(), (int) selectables[i].getHeight());
-					if (selection != i) { 
-						g.setColor(Color.WHITE);
-						g.fillRect((int) selectables[i].getX() + selectableBorder, (int) selectables[i].getY() + selectableBorder, (int) selectables[i].getWidth() - 2 * selectableBorder, (int) selectables[i].getHeight() - 2 * selectableBorder);
-					}
-					g.setColor(selection == i ? Color.WHITE : Color.BLACK);
-					if (i < numLocalImages)
-						g.drawString(localImages[i], (int) selectables[i].getX() + selectableSpacing, (int) selectables[i].getY() - selectableSpacing + 2 * menuHeight - 5);
-					else
-						g.drawString(localProjects[i - numLocalImages], (int) selectables[i].getX() + selectableSpacing, (int) selectables[i].getY() - selectableSpacing + 2 * menuHeight - 5);
-					
-				}
-				
+				for (int i = 0; i < selectables.length; i++)
+					if (selectables[i].getY() - yOffset >= 2 * menuHeight + selectableSpacing) {
+						g.setColor(Color.BLACK);
+						g.fillRect((int) selectables[i].getX(), (int) selectables[i].getY() - yOffset, (int) selectables[i].getWidth(), (int) selectables[i].getHeight());
+						if (selection != i) { 
+							g.setColor(Color.WHITE);
+							g.fillRect((int) selectables[i].getX() + selectableBorder, (int) selectables[i].getY() + selectableBorder - yOffset, (int) selectables[i].getWidth() - 2 * selectableBorder, (int) selectables[i].getHeight() - 2 * selectableBorder);
+						}
+						g.setColor(selection == i ? Color.WHITE : Color.BLACK);
+						if (i < numLocalImages)
+							g.drawString(localImages[i], (int) selectables[i].getX() + selectableSpacing, (int) selectables[i].getY() - selectableSpacing + 2 * menuHeight - 5 - yOffset);
+						else
+							g.drawString(localProjects[i - numLocalImages], (int) selectables[i].getX() + selectableSpacing, (int) selectables[i].getY() - selectableSpacing + 2 * menuHeight - 5 - yOffset);
+					}				
 			break;
 			case COMPOSING:
 				if (sourceWidth == 0) {	//only loaded raw image
@@ -327,15 +327,22 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 				numberWidth = (int) fontRect.getWidth() + 7;
 				paletteOffset = (int) (numberWidth * (paletteSize + 1.5));
 				Rectangle pixel, screen = new Rectangle(-zoom, -zoom, screenWidth + 3 * zoom, screenHeight + 3 * zoom);
+				Color thisOutline;
 				for (int i = 0; i < sourceWidth; i++)	//draw the design & gridlines
 					for (int j = 0; j < sourceHeight; j++) {
 						pixel = new Rectangle(paletteOffset + i * zoom - xOffset, j * zoom - yOffset, zoom, zoom);
 						if (screen.contains(pixel)) {
 							g.setColor(new Color(rgbArray[i][j][0], rgbArray[i][j][1], rgbArray[i][j][2]));
 							g.fillRect(pixel.x + 1, pixel.y + 1, pixel.width - 1, pixel.height - 1);
-							g.setColor(contrastWith(g.getColor()));
-							g.drawLine(pixel.x, pixel.y, pixel.x + zoom, pixel.y);
-							g.drawLine(pixel.x, pixel.y + 1, pixel.x, pixel.y + zoom);
+							thisOutline = contrastWith(g.getColor());	//if the two adjacent pixels already contrast enough, let grey background show through
+							if (i < 1 ? true : thisOutline == contrastWith(new Color(rgbArray[i - 1][j][0], rgbArray[i - 1][j][1], rgbArray[i - 1][j][2]))) {
+								g.setColor(thisOutline);
+								g.drawLine(pixel.x, pixel.y + 1, pixel.x, pixel.y + zoom);
+							}
+							if (j < 1 ? true : thisOutline == contrastWith(new Color(rgbArray[i][j - 1][0], rgbArray[i][j - 1][1], rgbArray[i][j - 1][2]))) {
+								g.setColor(thisOutline);
+								g.drawLine(pixel.x, pixel.y, pixel.x + zoom, pixel.y);
+							}
 							if(highlighted[i][j] == 1)
 								g.drawLine(pixel.x, pixel.y, pixel.x + zoom, pixel.y + zoom);
 							if(highlighted[i][j] == 2)
@@ -440,8 +447,28 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 			holdingCtrl = false;
 	}
 	public void keyPressed(KeyEvent e) {
-		if (mode == LOAD)
-			return;
+		if (mode == LOAD) {	//navigation only
+			if (e.getKeyCode() == KeyEvent.VK_UP) {
+				yOffset -= selectableHeight;
+				if (yOffset < 0) {
+					System.out.println("yOffset already 0");
+					yOffset = 0;
+				}
+				repaint();
+			} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+				if (screenHeight - menuHeight > selectableHeight * Math.max(numProjects, numLocalImages)) {	//they all fit on the screen, do nothing
+					System.out.println("Everything fits");
+					return;
+				}
+				yOffset += selectableHeight;
+				if (yOffset > selectableHeight * Math.max(numProjects, numLocalImages) + 2 * menuHeight + selectableSpacing - screenHeight) {
+					System.out.println("Hit the bottom");
+					yOffset = selectableHeight * Math.max(numProjects, numLocalImages) + 2 * menuHeight + selectableSpacing - screenHeight;
+				}
+				repaint();
+			}
+			return;	//no other buttons should do anything
+		}
 		double dz;	//proportion of change done to zoom, is applied to offsets.
 		switch (e.getKeyCode()) {
 			case KeyEvent.VK_UP:
@@ -453,8 +480,8 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 			case KeyEvent.VK_DOWN:
 				if (mode == WORKING || mode == COMPOSING && sourceWidth != 0) {
 					yOffset += (int) (4 * screenWidth / zoom);
-					if (yOffset > zoom * sourceHeight - screenHeight + (mode == COMPOSING ? menuHeight : 0))
-						yOffset = zoom * sourceHeight - screenHeight + (mode == COMPOSING ? menuHeight : 0);
+					if (yOffset > zoom * sourceHeight - screenHeight + (mode == COMPOSING ? menuHeight : 0) + 1)
+						yOffset = zoom * sourceHeight - screenHeight + (mode == COMPOSING ? menuHeight : 0) + 1;
 				} else {
 					yOffset += (int) (0.25 * screenWidth);
 					if (yOffset > rawImage.getHeight() - screenHeight + (mode == COMPOSING ? menuHeight : 0))
@@ -769,7 +796,7 @@ public class Embro extends JPanel implements ActionListener, KeyListener, Compon
 			return;
 		}
 		if (mode == LOAD && e.getY() >= 2 * menuHeight) {	//selecting projects and local images
-			mousePos = new Point(e.getX(), e.getY());
+			mousePos = new Point(e.getX(), e.getY() + yOffset);
 			for (int i = 0; i < selectables.length; i++)
 				if (selectables[i].contains(mousePos)) {
 					selection = i;
