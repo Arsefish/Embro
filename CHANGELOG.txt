@@ -1,0 +1,6 @@
+CHANGELOG EMBRO
+
+0.93:	Made it possible to navigate to Projects or local Pictures that would have been rendered off screen due to quantity
+	Changed partitioning lines in working mode so if they already have sufficient relative contrast, the line is grey. It had weird raised relief before that was not helpful.
+
+0.92:	Initial commit
